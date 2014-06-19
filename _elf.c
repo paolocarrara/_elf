@@ -1,4 +1,4 @@
-#include "elf.h"
+#include "_elf.h"
 
 static inline uint8_t verify_elf_file	(FILE *);
 
