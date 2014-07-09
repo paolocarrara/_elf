@@ -1365,156 +1365,300 @@ uint8_t *get_elf_shdr_section_by_name (uint8_t *shdr_name, const struct Elf_shdr
 		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
 			if ( !strcmp ((char *)elf_shdr_table->elf_shdrs.elf32_shdr[i]->name, (char *)shdr_name ) ) {
 				section = elf_shdr_table->elf_shdrs.elf64_shdr[i]->section;
+				i = elf_shdr_table->e_shnum;
 			}
 		}
 	} else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
 		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
 			if ( !strcmp ((char *)elf_shdr_table->elf_shdrs.elf64_shdr[i]->name, (char *)shdr_name ) ) {
 				section = elf_shdr_table->elf_shdrs.elf64_shdr[i]->section;
+				i = elf_shdr_table->e_shnum;
 			}
 		}
 	}
 
 	return section;
 }
+union Elf_shdrs *get_elf_shdr_by_name (uint8_t *shdr_name, const struct Elf_shdr_table *elf_shdr_table) 
+{
+	union Elf_shdrs *to_return_shdr = NULL;
+	uint16_t i;
 
-void update_rm_elf_hdr 		(struct Elf_obj *, uint64_t, uint64_t, uint16_t);
-void update_rm_elf_shdr_table 	(struct Elf_shdr_table *, uint64_t, uint64_t, uint16_t);
-void update_rm_elf_phdr_table 	(struct Elf_phdr_table *, uint64_t, uint64_t);
+	if (elf_shdr_table->elf_shdr_table_t == ELFCLASS32) {
+		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
+			if ( !strcmp ((char *)elf_shdr_table->elf_shdrs.elf32_shdr[i]->name, (char *)shdr_name ) ) {
+				to_return_shdr = malloc (sizeof (union Elf_shdrs));
+				to_return_shdr->elf32_shdr = malloc (sizeof (struct Elf32_Shdr *));
+				to_return_shdr->elf32_shdr[0] = elf_shdr_table->elf_shdrs.elf32_shdr[i];
+				i = elf_shdr_table->e_shnum;
+			}
+		}
+	} else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
+		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
+			if ( !strcmp ((char *)elf_shdr_table->elf_shdrs.elf64_shdr[i]->name, (char *)shdr_name ) ) {
+				to_return_shdr = malloc ( sizeof (union Elf_shdrs) );
+				to_return_shdr->elf64_shdr = malloc (sizeof (struct Elf64_Shdr *));
+				to_return_shdr->elf64_shdr[0] = elf_shdr_table->elf_shdrs.elf64_shdr[i];
+				i = elf_shdr_table->e_shnum;
+			}
+		}
+	}
+	return to_return_shdr;
+}
+uint16_t get_elf_shdr_ndx_by_name (uint8_t *shdr_name, const struct Elf_shdr_table *elf_shdr_table) 
+{
+	uint16_t ndx;
+	uint16_t i;
+
+	if (elf_shdr_table->elf_shdr_table_t == ELFCLASS32) {
+		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
+			if ( !strcmp ((char *)elf_shdr_table->elf_shdrs.elf32_shdr[i]->name, (char *)shdr_name ) ) {
+				ndx = i;
+				i = elf_shdr_table->e_shnum;
+			}	
+		}
+	} else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
+		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
+			if ( !strcmp ((char *)elf_shdr_table->elf_shdrs.elf64_shdr[i]->name, (char *)shdr_name ) ) {
+				ndx = i;
+				i = elf_shdr_table->e_shnum;
+			}
+		}
+	}
+
+	return ndx;
+}
+
+void update_elf_hdr 		(struct Elf_obj *, uint64_t, uint64_t, uint16_t, uint8_t);
+void update_elf_shdr_table 	(struct Elf_shdr_table *, uint64_t, uint64_t, uint16_t, union Elf_shdrs *, uint8_t);
+void update_elf_phdr_table 	(struct Elf_phdr_table *, uint64_t, uint64_t, uint64_t, uint64_t, uint8_t);
 
 void remove_elf_shdr_by_name (uint8_t *shdr_name, struct Elf_obj *elf_obj) 
 {
-	uint16_t i;
+	uint16_t ndx;
+	ndx = get_elf_shdr_ndx_by_name (shdr_name, elf_obj->elf_shdr_table);
 
 	if (elf_obj->elf_obj_t == ELFCLASS32) {
-		for (i = 0; i < elf_obj->elf_shdr_table->e_shnum; i++) {
-			if ( !strcmp ((char *)elf_obj->elf_shdr_table->elf_shdrs.elf32_shdr[i]->name, (char *)shdr_name ) ) {
-				uint32_t sh_size = elf_obj->elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_size;
-				uint32_t sh_offset = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff + i*elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
+		uint32_t sh_size = elf_obj->elf_shdr_table->elf_shdrs.elf32_shdr[ndx]->sh_size;
+		uint32_t sh_offset = elf_obj->elf_shdr_table->elf_shdrs.elf32_shdr[ndx]->sh_offset;
+		uint64_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
+		uint64_t e_shoff = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff;
 
-				update_rm_elf_hdr (elf_obj, sh_offset, sh_offset, i);
-				update_rm_elf_shdr_table (elf_obj->elf_shdr_table, sh_size, sh_offset, i);
+		update_elf_hdr (elf_obj, sh_size, sh_offset, ndx, REMOVE_TYPE);
+		update_elf_shdr_table (elf_obj->elf_shdr_table, sh_size, sh_offset, ndx, NULL, REMOVE_TYPE);
+		update_elf_phdr_table (elf_obj->elf_phdr_table, sh_size, e_shentsize, e_shoff, sh_offset, REMOVE_TYPE);
 
-				if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff < elf_obj->elf_phdr_table->elf_phdrs.elf32_phdr[0]->p_offset) {
-					update_rm_elf_phdr_table (elf_obj->elf_phdr_table, sh_size + elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize, sh_offset);
-				} else {
-					update_rm_elf_phdr_table (elf_obj->elf_phdr_table, sh_size, sh_offset);
-				}
-				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shnum--;
-			}
-		}
 	} else if (elf_obj->elf_obj_t == ELFCLASS64) {
-		for (i = 0; i < elf_obj->elf_shdr_table->e_shnum; i++) {
-			if ( !strcmp ((char *)elf_obj->elf_shdr_table->elf_shdrs.elf64_shdr[i]->name, (char *)shdr_name ) ) {
-				uint64_t sh_size = elf_obj->elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_size;
-				uint64_t sh_offset = elf_obj->elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset;
+		uint64_t sh_size = elf_obj->elf_shdr_table->elf_shdrs.elf64_shdr[ndx]->sh_size;
+		uint64_t sh_offset = elf_obj->elf_shdr_table->elf_shdrs.elf64_shdr[ndx]->sh_offset;
+		uint64_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize;
+		uint64_t e_shoff = elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff;
 
-				update_rm_elf_hdr (elf_obj, sh_size, sh_offset, i);
-				update_rm_elf_shdr_table (elf_obj->elf_shdr_table, sh_size, sh_offset, i);
-
-				if (elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff < elf_obj->elf_phdr_table->elf_phdrs.elf64_phdr[0]->p_offset) {
-					/*maybe, it can cause a overflow*/
-					update_rm_elf_phdr_table (elf_obj->elf_phdr_table, sh_size + elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize, sh_offset);
-				} else {
-					update_rm_elf_phdr_table (elf_obj->elf_phdr_table, sh_size, sh_offset);
-				}
-				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shnum--;
-			}
-		}
+		update_elf_hdr (elf_obj, sh_size, sh_offset, ndx, REMOVE_TYPE);
+		update_elf_shdr_table (elf_obj->elf_shdr_table, sh_size, sh_offset, ndx, NULL, REMOVE_TYPE);
+		update_elf_phdr_table (elf_obj->elf_phdr_table, sh_size, e_shentsize, e_shoff, sh_offset, REMOVE_TYPE);
 	}
 }
-void update_rm_elf_hdr (struct Elf_obj *elf_obj, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx) 
+void insert_elf_shdr_by_ndx (uint16_t ndx, struct Elf_obj *elf_obj, union Elf_shdrs *elf_shdr) 
+{/*
+	if (elf_obj->elf_obj_t == ELFCLASS32) {
+		update_elf_hdr 		(elf_obj, elf_shdr->elf32_shdr[0]->sh_size, elf_shdr->elf32_shdr[0]->sh_offset, ndx, INSERT_TYPE);
+		update_elf_shdr_table 	(elf_obj->elf_shdr_table, elf_shdr->elf32_shdr[0]->sh_size, elf_shdr->elf32_shdr[0]->sh_offset, ndx, elf_shdr, INSERT_TYPE);
+		update_elf_phdr_table 	(elf_obj->elf_phdr_table, elf_shdr->elf32_shdr[0]->sh_size, elf_shdr->elf32_shdr[0]->sh_entsize, elf_shdr->elf32_shdr[0]->sh_offset, INSERT_TYPE);
+
+	} else if (elf_obj->elf_obj_t == ELFCLASS64) {
+		update_elf_hdr 		(elf_obj, elf_shdr->elf64_shdr[0]->sh_size, elf_shdr->elf64_shdr[0]->sh_offset, ndx, INSERT_TYPE);
+		update_elf_shdr_table 	(elf_obj->elf_shdr_table, elf_shdr->elf64_shdr[0]->sh_size, elf_shdr->elf64_shdr[0]->sh_offset, ndx, elf_shdr, INSERT_TYPE);
+		update_elf_phdr_table 	(elf_obj->elf_phdr_table, elf_shdr->elf64_shdr[0]->sh_size, elf_shdr->elf64_shdr[0]->sh_entsize, elf_shdr->elf64_shdr[0]->sh_offset, INSERT_TYPE);
+	}*/
+}
+/*OK para a remoção*/
+void update_elf_hdr (struct Elf_obj *elf_obj, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, uint8_t updt_t) 
 {
 	if (elf_obj->elf_obj_t == ELFCLASS32) {
 		if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff > elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff) {
-			elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff -= elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
+			if (updt_t == REMOVE_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff -= elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff += elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
 		}
 		if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff > sh_offset) {
-			elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff -= sh_size;
+			if (updt_t == REMOVE_TYPE)
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff -= sh_size;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff += sh_size;
 		}
 		if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff > sh_offset) {
-			elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff -= sh_size;
+			if (updt_t == REMOVE_TYPE)
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff -= sh_size;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff += sh_size;
 		}
 		if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shstrndx > ndx) {
-			elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shstrndx--;
-		} else if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shstrndx == ndx) {
+			if (updt_t == REMOVE_TYPE)
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shstrndx--;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shstrndx++;
+		} 
+		else if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shstrndx == ndx) {
 			elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shstrndx = 0;
-		}	
-	} else if(elf_obj->elf_obj_t == ELFCLASS64) {
+		}
+		if (updt_t == REMOVE_TYPE) 
+			elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shnum--;
+		else if (updt_t == INSERT_TYPE)
+			elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shnum++;
+	} 
+	else if(elf_obj->elf_obj_t == ELFCLASS64) {
+		/*Faz o update do offset do phtable baseado no tamanho do cabeçalho de uma seção*/
 		if (elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff > elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff) {
-			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff -= elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize;
+			if (updt_t == REMOVE_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff -= elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff += elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize;
 		}
+		/*Faz o update do offset do phtable baseado no tamanho da seção*/
 		if (elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff > sh_offset) {
-			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff -= sh_size;
+			if (updt_t == REMOVE_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff -= sh_size;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_phoff += sh_size;
 		}
+		/*Faz o update do offset do shtable baseado no tamanho da seção*/
 		if (elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff > sh_offset) {
-			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff -= sh_size;
+			if (updt_t == REMOVE_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff -= sh_size;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff += sh_size;
 		}
+		/*Faz o update do indice da string table*/
 		if (elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shstrndx > ndx) {
-			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shstrndx--;
-		} else if (elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shstrndx == ndx) {
+			if (updt_t == REMOVE_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shstrndx--;
+			else if (updt_t == INSERT_TYPE) 
+				elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shstrndx++;
+		} 
+		else if (elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shstrndx == ndx) {
 			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shstrndx = 0;
 		}
+		/*Diminui o numero de seções*/ /*preciso diminuir na struct de shtable*/
+		if (updt_t == REMOVE_TYPE)
+			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shnum--;
+		else if (updt_t == INSERT_TYPE)
+			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shnum++;
 	}
 }
 void rm_elf_shdr_from_table (struct Elf_shdr_table *, uint16_t);
-
-void update_rm_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx) 
+void insert_elf_shdr_in_table (struct Elf_shdr_table *, uint16_t, union Elf_shdrs *);
+/*OK para a remoção*/
+void update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, union Elf_shdrs *elf_shdr, uint8_t updt_t) 
 {
 	uint16_t i;
 
 	if (elf_shdr_table->elf_shdr_table_t == ELFCLASS32) {
 		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
 			if (elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_offset > sh_offset) {
-				elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_offset -= sh_size;
+				if (updt_t == REMOVE_TYPE) 
+					elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_offset -= sh_size;
+				else if (updt_t == INSERT_TYPE) 
+					elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_offset += sh_size;
 			}
 		}
-	} else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
+	} 
+	/*Faz o update do offset de cada seção descrito no cabeçalho de cada seção baseado no tamanho da seção*/
+	else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
 		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
 			if (elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset > sh_offset) {
-				elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset -= sh_size;
+				if (updt_t == REMOVE_TYPE) 
+					elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset -= sh_size;
+				else if (updt_t == INSERT_TYPE) 
+					elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset += sh_size;
 			}
 		}
 	}
-	rm_elf_shdr_from_table (elf_shdr_table, ndx);
+	if (updt_t == REMOVE_TYPE) 
+		rm_elf_shdr_from_table (elf_shdr_table, ndx);
+	else if (updt_t == INSERT_TYPE)
+		insert_elf_shdr_in_table (elf_shdr_table, ndx, elf_shdr);
 }
+/*OK*/
 void rm_elf_shdr_from_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx) 
 {
 	uint16_t i;
 
 	if (elf_shdr_table->elf_shdr_table_t == ELFCLASS32) {
 		struct Elf32_Shdr *elf_shdr_to_free = elf_shdr_table->elf_shdrs.elf32_shdr[ndx];
-		for (i = ndx; i < elf_shdr_table->e_shnum; i++) {
+		for (i = ndx; i < elf_shdr_table->e_shnum-1; i++) {
 			elf_shdr_table->elf_shdrs.elf32_shdr[i] = elf_shdr_table->elf_shdrs.elf32_shdr[i+1];
 		}
+		free (elf_shdr_to_free->name);
+		free (elf_shdr_to_free->section);
 		free (elf_shdr_to_free);
-	} else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
+	} 
+	else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
 		struct Elf64_Shdr *elf_shdr_to_free = elf_shdr_table->elf_shdrs.elf64_shdr[ndx];
 		for (i = ndx; i < elf_shdr_table->e_shnum-1; i++) {
 			elf_shdr_table->elf_shdrs.elf64_shdr[i] = elf_shdr_table->elf_shdrs.elf64_shdr[i+1];
 		}
-		elf_shdr_table->e_shnum--;
 		free (elf_shdr_to_free->name);
 		free (elf_shdr_to_free->section);
 		free (elf_shdr_to_free);
 	}
+	elf_shdr_table->e_shnum--;
 }
-void update_rm_elf_phdr_table (struct Elf_phdr_table *elf_phdr_table, uint64_t sh_size, uint64_t sh_offset) 
+void insert_elf_shdr_in_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx, union Elf_shdrs *elf_shdr)
+ {
+	uint16_t i;
+
+	if (elf_shdr_table->elf_shdr_table_t == ELFCLASS32) {
+		elf_shdr_table->elf_shdrs.elf32_shdr = realloc (elf_shdr_table->elf_shdrs.elf32_shdr, (elf_shdr_table->e_shnum+1)*sizeof(struct Elf32_Shdr *));
+		for (i = elf_shdr_table->e_shnum; i > ndx; i--) {
+			elf_shdr_table->elf_shdrs.elf32_shdr[i] = elf_shdr_table->elf_shdrs.elf32_shdr[i-1];
+		}
+		elf_shdr_table->elf_shdrs.elf32_shdr[ndx] = elf_shdr->elf32_shdr[0];
+	} 
+	else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
+		elf_shdr_table->elf_shdrs.elf64_shdr = realloc (elf_shdr_table->elf_shdrs.elf64_shdr, (elf_shdr_table->e_shnum+1)*sizeof(struct Elf64_Shdr *));
+		for (i = elf_shdr_table->e_shnum; i > ndx; i--) {
+			elf_shdr_table->elf_shdrs.elf64_shdr[i] = elf_shdr_table->elf_shdrs.elf64_shdr[i-1];
+		}
+		elf_shdr_table->elf_shdrs.elf64_shdr[ndx] = elf_shdr->elf64_shdr[0];
+	}
+	elf_shdr_table->e_shnum++;
+}
+/*OK para remoção*/
+void update_elf_phdr_table (struct Elf_phdr_table *elf_phdr_table, uint64_t sh_size, uint64_t sh_entsize, uint64_t e_shoff, uint64_t sh_offset, uint8_t updt_t) 
 {
 	uint16_t i;
 
 	if (elf_phdr_table->elf_phdr_table_t == ELFCLASS32) {
 		for (i = 0; i < elf_phdr_table->e_phnum; i++) {
 			if (elf_phdr_table->elf_phdrs.elf32_phdr[i]->p_offset > sh_offset) {
-				elf_phdr_table->elf_phdrs.elf32_phdr[i]->p_offset -= sh_size;
+				if (updt_t == REMOVE_TYPE) 
+					elf_phdr_table->elf_phdrs.elf32_phdr[i]->p_offset -= sh_size;
+				else if (updt_t == INSERT_TYPE) 
+					elf_phdr_table->elf_phdrs.elf32_phdr[i]->p_offset += sh_size;
+			}
+			if (elf_phdr_table->elf_phdrs.elf32_phdr[i]->p_offset > e_shoff) {
+				if (updt_t == REMOVE_TYPE)
+					elf_phdr_table->elf_phdrs.elf32_phdr[i]->p_offset -= sh_entsize;
+				if (updt_t == INSERT_TYPE)
+					elf_phdr_table->elf_phdrs.elf32_phdr[i]->p_offset += sh_entsize;
 			}
 		}
 	} else if (elf_phdr_table->elf_phdr_table_t == ELFCLASS64) {
 		for (i = 0; i < elf_phdr_table->e_phnum; i++) {
 			if (elf_phdr_table->elf_phdrs.elf64_phdr[i]->p_offset > sh_offset) {
-				elf_phdr_table->elf_phdrs.elf64_phdr[i]->p_offset -= sh_size;
+				if (updt_t == REMOVE_TYPE) 
+					elf_phdr_table->elf_phdrs.elf64_phdr[i]->p_offset -= sh_size;
+				else if (updt_t == INSERT_TYPE) 
+					elf_phdr_table->elf_phdrs.elf64_phdr[i]->p_offset += sh_size;
+			}
+			if (elf_phdr_table->elf_phdrs.elf64_phdr[i]->p_offset > e_shoff) {
+				if (updt_t == REMOVE_TYPE)
+					elf_phdr_table->elf_phdrs.elf64_phdr[i]->p_offset -= sh_entsize;
+				if (updt_t == INSERT_TYPE)
+					elf_phdr_table->elf_phdrs.elf64_phdr[i]->p_offset += sh_entsize;
 			}
 		}
 	}
 }
-

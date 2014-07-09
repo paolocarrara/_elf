@@ -7,6 +7,8 @@
 #include <stdlib.h>
 
 #define EI_NIDENT	16
+#define REMOVE_TYPE	0x01
+#define INSERT_TYPE	0x02
 
 struct Elf_obj {
 	uint8_t elf_obj_t;
@@ -158,7 +160,11 @@ void close_elf_obj 			(FILE *, struct Elf_obj *);
 void write_modified_new_elf_object_file	(FILE *, struct Elf_obj *);
 
 uint8_t *get_elf_shdr_section_by_name	(uint8_t *, const struct Elf_shdr_table *);
-void remove_elf_shdr_by_name (uint8_t *, struct Elf_obj *);
+uint16_t get_elf_shdr_ndx_by_name (uint8_t *, const struct Elf_shdr_table *);
+union Elf_shdrs *get_elf_shdr_by_name (uint8_t *, const struct Elf_shdr_table *);
+
+void remove_elf_shdr_by_name	(uint8_t *, struct Elf_obj *);
+void insert_elf_shdr_by_ndx 	(uint16_t, struct Elf_obj *, union Elf_shdrs *);
 
 void print_elf_hdr 		(const struct Elf_hdr *);
 void print_elf_shdr_table 	(const struct Elf_shdr_table *);

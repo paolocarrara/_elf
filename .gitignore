@@ -2,5 +2,7 @@ main.c
 a.out
 *.o
 *.gch
+*.swp
+Makefile
 inputs_tests
 output_tests
