@@ -1233,7 +1233,7 @@ static inline void fwrite_elf_shdr_table	(FILE *, struct Elf_hdr *, struct Elf_s
 static inline void fwrite_elf_phdr_table	(FILE *, struct Elf_hdr *, struct Elf_phdr_table *);
 static inline void fwrite_elf_sections 		(FILE *, struct Elf_shdr_table *);
 
-void write_modified_new_elf_object_file (FILE *pf, struct Elf_obj *elf_obj) 
+void write_elf_object_file (FILE *pf, struct Elf_obj *elf_obj) 
 {
 	fwrite_elf_hdr 		(pf, elf_obj->elf_hdr);
 	fwrite_elf_shdr_table 	(pf, elf_obj->elf_hdr, elf_obj->elf_shdr_table);
@@ -1429,9 +1429,9 @@ uint16_t get_elf_shdr_ndx_by_name (uint8_t *shdr_name, const struct Elf_shdr_tab
 	return ndx;
 }
 
-void update_elf_hdr 		(struct Elf_obj *, uint64_t, uint64_t, uint16_t, uint8_t);
-void update_elf_shdr_table 	(struct Elf_shdr_table *, uint64_t, uint64_t, uint16_t, union Elf_shdrs *, uint8_t);
-void update_elf_phdr_table 	(struct Elf_phdr_table *, uint64_t, uint64_t, uint64_t, uint64_t, uint8_t);
+static inline void update_elf_hdr 		(struct Elf_obj *, uint64_t, uint64_t, uint16_t, uint8_t);
+static inline void update_elf_shdr_table 	(struct Elf_shdr_table *, uint64_t, uint64_t, uint16_t, union Elf_shdrs *, uint8_t);
+static inline void update_elf_phdr_table 	(struct Elf_phdr_table *, uint64_t, uint64_t, uint64_t, uint64_t, uint8_t);
 
 void remove_elf_shdr_by_name (uint8_t *shdr_name, struct Elf_obj *elf_obj) 
 {
@@ -1482,7 +1482,7 @@ void insert_elf_shdr_by_ndx (uint16_t ndx, struct Elf_obj *elf_obj, union Elf_sh
 		update_elf_phdr_table 	(elf_obj->elf_phdr_table, sh_size, e_shentsize, e_shoff, sh_offset, INSERT_TYPE);
 	}
 }
-void update_elf_hdr (struct Elf_obj *elf_obj, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, uint8_t updt_t) 
+static inline void update_elf_hdr (struct Elf_obj *elf_obj, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, uint8_t updt_t) 
 {
 	if (elf_obj->elf_obj_t == ELFCLASS32) {
 		if (elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_phoff > elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff) {
@@ -1556,9 +1556,10 @@ void update_elf_hdr (struct Elf_obj *elf_obj, uint64_t sh_size, uint64_t sh_offs
 			elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shnum++;
 	}
 }
-void rm_elf_shdr_from_table (struct Elf_shdr_table *, uint16_t);
-void insert_elf_shdr_in_table (struct Elf_shdr_table *, uint16_t, union Elf_shdrs *);
-void update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, union Elf_shdrs *elf_shdr, uint8_t updt_t) 
+static inline void rm_elf_shdr_from_table (struct Elf_shdr_table *, uint16_t);
+static inline void insert_elf_shdr_in_table (struct Elf_shdr_table *, uint16_t, union Elf_shdrs *);
+static inline void 
+	update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, union Elf_shdrs *elf_shdr, uint8_t updt_t)
 {
 	uint16_t i;
 
@@ -1600,7 +1601,7 @@ void update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_s
 	else if (updt_t == INSERT_TYPE)
 		insert_elf_shdr_in_table (elf_shdr_table, ndx, elf_shdr);
 }
-void rm_elf_shdr_from_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx) 
+static inline void rm_elf_shdr_from_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx) 
 {
 	uint16_t i;
 
@@ -1624,7 +1625,7 @@ void rm_elf_shdr_from_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx
 	}
 	elf_shdr_table->e_shnum--;
 }
-void insert_elf_shdr_in_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx, union Elf_shdrs *elf_shdr)
+static inline void insert_elf_shdr_in_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx, union Elf_shdrs *elf_shdr)
 {
 	uint16_t i;
 
@@ -1644,7 +1645,8 @@ void insert_elf_shdr_in_table (struct Elf_shdr_table *elf_shdr_table, uint16_t n
 	}
 	elf_shdr_table->e_shnum++;
 }
-void update_elf_phdr_table (struct Elf_phdr_table *elf_phdr_table, uint64_t sh_size, uint64_t sh_entsize, uint64_t e_shoff, uint64_t sh_offset, uint8_t updt_t) 
+static inline void 
+	update_elf_phdr_table (struct Elf_phdr_table *elf_phdr_table, uint64_t sh_size, uint64_t sh_entsize, uint64_t e_shoff, uint64_t sh_offset, uint8_t updt_t) 
 {
 	uint16_t i;
 
