@@ -1441,8 +1441,8 @@ void remove_elf_shdr_by_name (uint8_t *shdr_name, struct Elf_obj *elf_obj)
 	if (elf_obj->elf_obj_t == ELFCLASS32) {
 		uint32_t sh_size = elf_obj->elf_shdr_table->elf_shdrs.elf32_shdr[ndx]->sh_size;
 		uint32_t sh_offset = elf_obj->elf_shdr_table->elf_shdrs.elf32_shdr[ndx]->sh_offset;
-		uint64_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
-		uint64_t e_shoff = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff;
+		uint16_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
+		uint32_t e_shoff = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff;
 
 		update_elf_hdr (elf_obj, sh_size, sh_offset, ndx, REMOVE_TYPE);
 		update_elf_shdr_table (elf_obj->elf_shdr_table, sh_size, sh_offset, ndx, NULL, REMOVE_TYPE);
@@ -1451,7 +1451,7 @@ void remove_elf_shdr_by_name (uint8_t *shdr_name, struct Elf_obj *elf_obj)
 	} else if (elf_obj->elf_obj_t == ELFCLASS64) {
 		uint64_t sh_size = elf_obj->elf_shdr_table->elf_shdrs.elf64_shdr[ndx]->sh_size;
 		uint64_t sh_offset = elf_obj->elf_shdr_table->elf_shdrs.elf64_shdr[ndx]->sh_offset;
-		uint64_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize;
+		uint16_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize;
 		uint64_t e_shoff = elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff;
 
 		update_elf_hdr (elf_obj, sh_size, sh_offset, ndx, REMOVE_TYPE);
@@ -1460,19 +1460,28 @@ void remove_elf_shdr_by_name (uint8_t *shdr_name, struct Elf_obj *elf_obj)
 	}
 }
 void insert_elf_shdr_by_ndx (uint16_t ndx, struct Elf_obj *elf_obj, union Elf_shdrs *elf_shdr) 
-{/*
+{
 	if (elf_obj->elf_obj_t == ELFCLASS32) {
-		update_elf_hdr 		(elf_obj, elf_shdr->elf32_shdr[0]->sh_size, elf_shdr->elf32_shdr[0]->sh_offset, ndx, INSERT_TYPE);
-		update_elf_shdr_table 	(elf_obj->elf_shdr_table, elf_shdr->elf32_shdr[0]->sh_size, elf_shdr->elf32_shdr[0]->sh_offset, ndx, elf_shdr, INSERT_TYPE);
-		update_elf_phdr_table 	(elf_obj->elf_phdr_table, elf_shdr->elf32_shdr[0]->sh_size, elf_shdr->elf32_shdr[0]->sh_entsize, elf_shdr->elf32_shdr[0]->sh_offset, INSERT_TYPE);
+		uint32_t sh_size = elf_shdr->elf32_shdr[0]->sh_size;
+		uint32_t sh_offset = elf_shdr->elf32_shdr[0]->sh_offset;
+		uint16_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shentsize;
+		uint32_t e_shoff = elf_obj->elf_hdr->elf_hdr.elf32_hdr->e_shoff;
+
+		update_elf_hdr 		(elf_obj, sh_size, sh_offset, ndx, INSERT_TYPE);
+		update_elf_shdr_table 	(elf_obj->elf_shdr_table, sh_size, sh_offset, ndx, elf_shdr, INSERT_TYPE);
+		update_elf_phdr_table 	(elf_obj->elf_phdr_table, sh_size, e_shentsize, e_shoff, sh_offset, INSERT_TYPE);
 
 	} else if (elf_obj->elf_obj_t == ELFCLASS64) {
-		update_elf_hdr 		(elf_obj, elf_shdr->elf64_shdr[0]->sh_size, elf_shdr->elf64_shdr[0]->sh_offset, ndx, INSERT_TYPE);
-		update_elf_shdr_table 	(elf_obj->elf_shdr_table, elf_shdr->elf64_shdr[0]->sh_size, elf_shdr->elf64_shdr[0]->sh_offset, ndx, elf_shdr, INSERT_TYPE);
-		update_elf_phdr_table 	(elf_obj->elf_phdr_table, elf_shdr->elf64_shdr[0]->sh_size, elf_shdr->elf64_shdr[0]->sh_entsize, elf_shdr->elf64_shdr[0]->sh_offset, INSERT_TYPE);
-	}*/
+		uint32_t sh_size = elf_shdr->elf64_shdr[0]->sh_size;
+		uint32_t sh_offset = elf_shdr->elf64_shdr[0]->sh_offset;
+		uint16_t e_shentsize = elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shentsize;
+		uint32_t e_shoff = elf_obj->elf_hdr->elf_hdr.elf64_hdr->e_shoff;
+
+		update_elf_hdr 		(elf_obj, sh_size, sh_offset, ndx, INSERT_TYPE);
+		update_elf_shdr_table 	(elf_obj->elf_shdr_table, sh_size, sh_offset, ndx, elf_shdr, INSERT_TYPE);
+		update_elf_phdr_table 	(elf_obj->elf_phdr_table, sh_size, e_shentsize, e_shoff, sh_offset, INSERT_TYPE);
+	}
 }
-/*OK para a remoção*/
 void update_elf_hdr (struct Elf_obj *elf_obj, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, uint8_t updt_t) 
 {
 	if (elf_obj->elf_obj_t == ELFCLASS32) {
@@ -1549,7 +1558,6 @@ void update_elf_hdr (struct Elf_obj *elf_obj, uint64_t sh_size, uint64_t sh_offs
 }
 void rm_elf_shdr_from_table (struct Elf_shdr_table *, uint16_t);
 void insert_elf_shdr_in_table (struct Elf_shdr_table *, uint16_t, union Elf_shdrs *);
-/*OK para a remoção*/
 void update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_size, uint64_t sh_offset, uint16_t ndx, union Elf_shdrs *elf_shdr, uint8_t updt_t) 
 {
 	uint16_t i;
@@ -1557,10 +1565,16 @@ void update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_s
 	if (elf_shdr_table->elf_shdr_table_t == ELFCLASS32) {
 		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
 			if (elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_offset > sh_offset) {
-				if (updt_t == REMOVE_TYPE) 
+				if (updt_t == REMOVE_TYPE) {
 					elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_offset -= sh_size;
-				else if (updt_t == INSERT_TYPE) 
+					if ( elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_addr != 0 )
+						elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_addr -= sh_size;
+				}
+				else if (updt_t == INSERT_TYPE) {
 					elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_offset += sh_size;
+					if ( elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_addr != 0 )
+						elf_shdr_table->elf_shdrs.elf32_shdr[i]->sh_addr += sh_size;
+				}
 			}
 		}
 	} 
@@ -1568,10 +1582,16 @@ void update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_s
 	else if (elf_shdr_table->elf_shdr_table_t == ELFCLASS64) {
 		for (i = 0; i < elf_shdr_table->e_shnum; i++) {
 			if (elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset > sh_offset) {
-				if (updt_t == REMOVE_TYPE) 
+				if (updt_t == REMOVE_TYPE) {
 					elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset -= sh_size;
-				else if (updt_t == INSERT_TYPE) 
+					if (elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_addr != 0)
+						elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_addr -= sh_size;
+				}
+				else if (updt_t == INSERT_TYPE) {
 					elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_offset += sh_size;
+					if (elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_addr != 0)
+						elf_shdr_table->elf_shdrs.elf64_shdr[i]->sh_addr += sh_size;
+				}
 			}
 		}
 	}
@@ -1580,7 +1600,6 @@ void update_elf_shdr_table (struct Elf_shdr_table *elf_shdr_table, uint64_t sh_s
 	else if (updt_t == INSERT_TYPE)
 		insert_elf_shdr_in_table (elf_shdr_table, ndx, elf_shdr);
 }
-/*OK*/
 void rm_elf_shdr_from_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx) 
 {
 	uint16_t i;
@@ -1606,7 +1625,7 @@ void rm_elf_shdr_from_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx
 	elf_shdr_table->e_shnum--;
 }
 void insert_elf_shdr_in_table (struct Elf_shdr_table *elf_shdr_table, uint16_t ndx, union Elf_shdrs *elf_shdr)
- {
+{
 	uint16_t i;
 
 	if (elf_shdr_table->elf_shdr_table_t == ELFCLASS32) {
@@ -1625,7 +1644,6 @@ void insert_elf_shdr_in_table (struct Elf_shdr_table *elf_shdr_table, uint16_t n
 	}
 	elf_shdr_table->e_shnum++;
 }
-/*OK para remoção*/
 void update_elf_phdr_table (struct Elf_phdr_table *elf_phdr_table, uint64_t sh_size, uint64_t sh_entsize, uint64_t e_shoff, uint64_t sh_offset, uint8_t updt_t) 
 {
 	uint16_t i;
